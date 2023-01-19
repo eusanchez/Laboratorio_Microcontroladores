@@ -27,6 +27,7 @@ int boton = 0;
 int randomNum();
 int randomRange ( int min, int max, int past_num );
 
+
 void timer_setup(){ //Configuracion del timer
   TCCR0A=0x00;   //Se usa el modo normal de operacion del timer
   TCCR0B=0x00;
@@ -43,12 +44,12 @@ void setup_boton(){//Configuracion de los puertos del mcu
   sei();
 }
 
+
 //Maquina de estados
 void fsm(){
   switch (estado){
     case inicio:
       PORTB = 0x00; _delay_ms (500); 
-      PORTB = 0x08; _delay_ms (500);
         if(boton == 1) {
           estado = nivel1;
         }
@@ -58,8 +59,26 @@ void fsm(){
         break;
 
     case nivel1:
-      PORTB = 0x00; _delay_ms (100000); 
+      PORTB = 0x08; _delay_ms (1000);
+      PORTB = 0x00; _delay_ms (1000);
+      PORTB = 0x08; _delay_ms (1000);
+      PORTB = 0x00; _delay_ms (1000);
+      estado = nivel2; 
       break;
+
+    case nivel2:
+      PORTB = (0<<PB0)|(0<<PB1)|(0<<PB2)|(randomRange(0, 10000, randomNum())<<PB3)|(randomRange(0, 10000, randomNum())<<PB4);  _delay_ms (500); 
+      PORTB = 0x00;  _delay_ms (1000000);
+      if(PB3 == PB7){
+        estado = nivel3;
+      } else {
+        estado = inicio; }
+      break;
+
+    case nivel3:
+      PORTB = 0X10; _delay_ms (10000);
+      break;
+  
   }
 }
 
@@ -74,7 +93,7 @@ int main(void){
   DDRD = 0x01;
   setup_boton();
   //timer_setup();
-  estado  = inicio;  // Estado inicial de la maquina, carros avanzando
+  estado  = inicio;  // Estado inicial de la maquina esperando el boton de inicio
   while (1) {
     fsm();
   }
