@@ -28,7 +28,7 @@ void timer_setup(){ //Configuracion del timer
   TCCR0A=0x00;   //Se usa el modo normal de operacion del timer
   TCCR0B=0x00;
   TCCR0B |= (1<<CS00)|(1<<CS02);   //prescaling usando el 1024
-  sei();
+  
   TCNT0=0;
   TIMSK|=(1<<TOIE0); //habilitando la interrupcion en TOIE0
 }
@@ -37,6 +37,7 @@ void setup_boton(){//Configuracion de los puertos del mcu
   DDRB = (1<<DDB4)|(1<<DDB3)|(1<<DDB2)|(1<<DDB1)|(1<<DDB0); // Configuracion de los puertos LED
   GIMSK |= (1<<INT1);     // Habilitando en INT1 (external interrupt) PD3 = INT1
   PORTB &= (0<<PB0)|(0<<PB1)|(0<<PB2)|(0<<PB3)|(0<<PB4); // Iniciar con todos los pines en cero. 
+  sei();
 }
 
 //Maquina de estados
@@ -66,10 +67,11 @@ ISR (INT1_vect){        // Interrupt service routine
 
 
 int main(void){
-  DDRB = 0x08 ; //configuracion de puerto
+  DDRB = 0x00; //configuracion de puerto
+  DDRD = 0x01;
   setup_boton();
   //timer_setup();
-  estado = inicio;  // Estado inicial de la maquina, carros avanzando
+  estado  = inicio;  // Estado inicial de la maquina, carros avanzando
   while (1) {
     fsm();
   }
