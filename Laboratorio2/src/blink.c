@@ -22,7 +22,7 @@
  
 // Variables globales
 int estado;
-int boton = 0;
+int boton = 0, boton_rojo = 0;
 
 int randomNum();
 int randomRange ( int min, int max, int past_num );
@@ -39,7 +39,7 @@ void timer_setup(){ //Configuracion del timer
 
 void setup_boton(){//Configuracion de los puertos del mcu
   DDRB = (1<<DDB4)|(1<<DDB3)|(1<<DDB2)|(1<<DDB1)|(1<<DDB0); // Configuracion de los puertos LED
-  GIMSK |= (1<<INT1);     // Habilitando en INT1 (external interrupt) PD3 = INT1
+  GIMSK |= (1<<INT1);    // Habilitando en INT1 (external interrupt) PD3 = INT1
   PORTB &= (0<<PB0)|(0<<PB1)|(0<<PB2)|(0<<PB3)|(0<<PB4); // Iniciar con todos los pines en cero. 
   sei();
 }
@@ -47,6 +47,7 @@ void setup_boton(){//Configuracion de los puertos del mcu
 
 //Maquina de estados
 void fsm(){
+  //GIMSK |= (1<);
   switch (estado){
     case inicio:
       PORTB = 0x00; _delay_ms (500); 
@@ -67,9 +68,11 @@ void fsm(){
       break;
 
     case nivel2:
-      PORTB = (0<<PB0)|(0<<PB1)|(0<<PB2)|(randomRange(0, 10000, randomNum())<<PB3)|(randomRange(0, 10000, randomNum())<<PB4);  _delay_ms (500); 
-      PORTB = 0x00;  _delay_ms (1000000);
-      if(PB3 == PB7){
+      PORTB = (0<<PB0)|(0<<PB1)|(0<<PB2)|(randomRange(0, 1, randomNum())<<PB3)|(randomRange(0, 1, randomNum())<<PB4)|(0<<PB5)|(0<<PB6)|(0<<PB7);  _delay_ms (500); 
+      //GIMSK |= (1<<INT7);  
+      DDRB = 0x10; //Entrada PB7
+      PORTB = 0x00;  _delay_ms (500);
+      if(1<<PB7){
         estado = nivel3;
       } else {
         estado = inicio; }
@@ -87,6 +90,10 @@ ISR (INT1_vect){        // Interrupt service routine
   boton = 1;
 }
 
+//ISR (INT7_vect){        // Interrupt service routine     
+  //boton_rojo = 1;
+//}
+
 
 int main(void){
   DDRB = 0x00; //configuracion de puerto
@@ -99,6 +106,8 @@ int main(void){
   }
 }
 
+
+// Funciones Random de Adrian
 int randomNum()
 { 
   int next = 710467;
