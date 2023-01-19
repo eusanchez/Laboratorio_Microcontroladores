@@ -24,6 +24,9 @@
 int estado;
 int boton = 0;
 
+int randomNum();
+int randomRange ( int min, int max, int past_num );
+
 void timer_setup(){ //Configuracion del timer
   TCCR0A=0x00;   //Se usa el modo normal de operacion del timer
   TCCR0B=0x00;
@@ -75,4 +78,17 @@ int main(void){
   while (1) {
     fsm();
   }
+}
+
+int randomNum()
+{ 
+  int next = 710467;
+         
+  next = ((next * next) / 100 ) % 10000 ; 
+  return next ; 
+} 
+ 
+int randomRange( int min, int max, int past_num )  
+{ 
+  return past_num % (max+1-min) + min ;  
 }
