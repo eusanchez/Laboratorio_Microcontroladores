@@ -8,6 +8,9 @@
 #define CHECK 3 //se enciende un led
 #define RESET 4 //se encienden tres leds
 
+int intr_count = 0;
+int sec = 0;
+int msec = 0;
 int playing, state, button, turn, counter, seed_counter, indicador;
 int user_input[14]; //= {};
 int secuencia[14]; //= {1,2,1,2,1,2};
@@ -22,6 +25,15 @@ void reset_arrays(){
         random = (rand() % (ub - lb + 1)) + lb;
   }
 }
+
+void timer_setup(){ //Funcion de configuracion del timer
+  TCCR0A=0x00;   //Se usa el modo normal de operacion del timer
+  TCCR0B=0x00;
+  TCCR0B |= (1<<CS00)|(1<<CS02);   //prescaling usando el 1024
+  TCNT0=0;
+  TIMSK|=(1<<TOIE0); //habilitando la interrupcion en TOIE0
+}
+
 
 void setup(){
   DDRB = 0x0F; // Configuracion del puerto B, 0 es input y 1 es output
@@ -123,7 +135,7 @@ int main(void){
       case IDLE:
         if (button != 0){
           state = START;
-          button = 0;
+          button = 0;         
         }
         break;
 
@@ -135,7 +147,7 @@ int main(void){
       case PLAYING:
         counter = 0, indicador = 1, playing = 1;
         simon_blink();
-        state = CHECK;
+        state = CHECK;        
         break;
        //_delay_ms(5000); SIRVE POR MEDIO DEL DELAY. 
 
