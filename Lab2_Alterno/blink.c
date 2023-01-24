@@ -9,8 +9,8 @@
 #define RESET 4 //se encienden tres leds
 
 int playing, state, button, turn, counter, seed_counter, indicador;
-int user_input[14]; //= {};
-int secuencia[14]; //= {1,2,1,2,1,2};
+int user_input[14]; 
+int secuencia[14]; 
 
 void reset_arrays(){
     int lb = 1, ub = 4;
@@ -24,13 +24,18 @@ void reset_arrays(){
 }
 
 void setup(){
+  // Puertos e interrupciones generales y exteriores
   DDRB = 0x0F; // Configuracion del puerto B, 0 es input y 1 es output
   GIMSK = 0xE8; // Habilitamos interrupciones INT0, INT1, PCIE0 y PCIE2
-  //GIMSK |=(1 << PCIE); // Habilito solo las interrupciones de tipo PCIE
   PCMSK = 0b10000000; // Solo el pin con PCINT7 (PB7) puede disparar la interrupcion PCIE0. 
   PCMSK1 = 0b00000100; // Solo el pin con PCINT10 (PA2) puede disparar la interrupcion PCIE1. 
   MCUCR = 0x0A; // Cualquier cambio lógico (toggle) en INT0-1 generan una interrupción. 
 
+  // Config de los timers internos
+  TCCR0A|=(1<<WGM01);//CTC mode
+  TCCR0B |= (1<<CS00)|(1<<CS02); //prescaling con 1024
+
+  
   state = IDLE;
   playing = 0, button = 0, counter = 0, seed_counter = 0, indicador = 1; turn = 1; 
 
@@ -90,31 +95,6 @@ void check(){
     }
   }
 }
-
-/*
-void led_on(){
-  switch (user_input[counter]){
-    case 1:
-      PORTB = 0b00001000;  _delay_ms(200);
-      PORTB = 0x00; 
-      break;
-    case 2:
-      PORTB = 0b00000100;  _delay_ms(200);
-      PORTB = 0x00; 
-      break;
-    case 3:
-      PORTB = 0b00000010;  _delay_ms(200);
-      PORTB = 0x00; 
-      break;
-    case 4:
-      PORTB = 0b00000001;  _delay_ms(200);
-      PORTB = 0x00; 
-      break;
-  default:
-    break;
-  }
-}
-*/
 
 int main(void){
   setup();
@@ -205,6 +185,11 @@ ISR(PCINT_B_vect) // Pin PB7
 {
   button = 3;
   indicador = ~indicador;
+  /*
+  La variable indicador nos sirve para simular el comportamiento de una
+  interrpución activada por flanco negativo, a como pasa con las interrupciones
+  INT0 e INT1
+  */
 
   if (playing == 1 && indicador == 1){
     user_input[counter] = button;
@@ -221,7 +206,6 @@ ISR(PCINT_A_vect) // Pin PA2
     user_input[counter] = button;
     counter++;
   }
-  
 }
 
 
