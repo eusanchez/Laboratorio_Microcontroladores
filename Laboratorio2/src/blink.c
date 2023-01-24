@@ -3,120 +3,164 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
-//Estados de niveles
-#define inicio 0 //las leds parpadean por dos segundos
-#define nivel1 1 //se enciende un led
-#define nivel2 2 //se encienden dos leds
-#define nivel3 3 //se encienden tres leds
-#define nivel4 4 //se encienden cuatro leds
-#define nivel5 5 //se encienden cinco leds
-#define nivel6 6 //se encienden seis leds
-#define nivel7 7 //se encienden siete leds
-#define nivel8 8 //se encienden ocho leds
-#define nivel9 9 //se encienden nueve leds
-#define nivel10 //se encienden diez leds 
-#define nivel11 //se encienden once leds
-#define nivel12 //se encienden doce leds
-#define nivel13 //se encienden trece leds
-#define nivel14 //se encienden catorce leds
- 
+// Estados para el boton (No tienen nada que ver con la FSM)
+#define ON  1
+#define OFF 0
+
+//Estados finitos para la maquina
+#define CO 0 //comienzo
+#define ST 1 //START
+#define SB 2 //SIMON BLINK
+#define UR 3 //USER RESPONSE
+
 // Variables globales
+int intr_count = 0;
+int sec = 0;
+int msec = 0;
+int boton = 0;
 int estado;
-int boton = 0, boton_rojo = 0;
+int turn = 0;
+int secuencia[14]; //= {4,3,2,1,4,4};
 
-int randomNum();
-int randomRange ( int min, int max, int past_num );
+//Funciones de estado 
+void Comienzo(void);
+void START(void);
+void SIMON_BLINK(void);
+void USER_RESPONSE(void);
+
+int estado;
+
+//Estructura FSM
+struct FSM{
+    void (*stateptr)(void);
+    unsigned char time; 
+    unsigned char next[2];
+};
+typedef struct FSM blink;
+
+//Definicion FSM con sus repectivos tiempos y estado siguiente
+blink fsm[3] = {
+    {&Comienzo,10,{CO,ST}},
+    {&START,10,{ST,SB}},
+    {&SIMON_BLINK,10,{SB,UR}}
+};
+
+void simon_blink(){
+   for(int i = 0; i < turn; i++){
+          switch(secuencia[i]){
+            case 1:
+              PORTB = 0b00001000;  _delay_ms(2000);
+              PORTB = 0x00; 
+              break;
+            case 2:
+              PORTB = 0b00000100;  _delay_ms(2000);
+              PORTB = 0x00; 
+              break;
+            case 3:
+              PORTB = 0b00000010;  _delay_ms(2000);
+              PORTB = 0x00; 
+              break;
+            case 4:
+              PORTB = 0b00000001;  _delay_ms(2000);
+              PORTB = 0x00; 
+              break;
+            default:
+              break;
+          }
+        }
+}
 
 
-void timer_setup(){ //Configuracion del timer
+//Definicion de funciones de estado
+void Comienzo(void){
+  PORTB = (1<<PB0)|(1<<PB1)|(0<<PB2)|(0<<PB3); //TODO APAGADO
+}
+void START(void){
+  PORTB ^= (1<<PB0)|(1<<PB1)|(1<<PB2)|(1<<PB3);
+}
+void SIMON_BLINK(void){
+  simon_blink();
+}
+void USER_RESPONSE(void){
+  PORTB = (0<<PB0)|(0<<PB1)|(0<<PB2)|(0<<PB3); //TODO APAGADO
+}
+
+// Funciones miscelaneas
+void timer_setup(){ //Funcion de configuracion del timer
   TCCR0A=0x00;   //Se usa el modo normal de operacion del timer
   TCCR0B=0x00;
   TCCR0B |= (1<<CS00)|(1<<CS02);   //prescaling usando el 1024
-  
+  sei();
   TCNT0=0;
   TIMSK|=(1<<TOIE0); //habilitando la interrupcion en TOIE0
 }
 
-void setup_boton(){//Configuracion de los puertos del mcu
-  DDRB = (1<<DDB4)|(1<<DDB3)|(1<<DDB2)|(1<<DDB1)|(1<<DDB0); // Configuracion de los puertos LED
-  GIMSK |= (1<<INT1);    // Habilitando en INT1 (external interrupt) PD3 = INT1
-  PORTB &= (0<<PB0)|(0<<PB1)|(0<<PB2)|(0<<PB3)|(0<<PB4); // Iniciar con todos los pines en cero. 
-  sei();
+void setup_boton(){// funcion de configuracion de los puertos del mcu
+  DDRB = (1<<DDB3)|(1<<DDB2)|(1<<DDB1)|(1<<DDB0); // configuracion de los puertos de salida (LED)
+  GIMSK |= (1<<INT1);     // habilitando en INT1 (external interrupt) 
+  MCUCR |= (1<<ISC11);    // se configura con flanco negativo del reloj
+  PORTB &= (0<<PB0)|(0<<PB1)|(0<<PB2)|(0<<PB3); // Como buena practica es necesario iniciar con todos los pines en cero. 
 }
 
 
-//Maquina de estados
-void fsm(){
-  //GIMSK |= (1<);
+//Motor de la maquina de estados
+void engine_fsm(){
   switch (estado){
-    case inicio:
-      PORTB = 0x00; _delay_ms (500); 
-        if(boton == 1) {
-          estado = nivel1;
-        }
-        else {
-          estado = inicio;
-        }
-        break;
-
-    case nivel1:
-      PORTB = 0x08; _delay_ms (1000);
-      PORTB = 0x00; _delay_ms (1000);
-      PORTB = 0x08; _delay_ms (1000);
-      PORTB = 0x00; _delay_ms (1000);
-      estado = nivel2; 
+    case CO:
+      (fsm[estado].stateptr)(); 
+      if (boton >= fsm[estado].time){
+        estado = fsm[estado].next[boton]; // si hay boton y ademan pasaron 10 segundos, pase de estado
+        intr_count = 0;
+        sec = 0;
+        msec =0;
+      }
+      else{
+        estado = CO; // si no hay bonton quedese en el estado de carros avanzando
+      }
+      break;
+    
+    case ST:
+      if (msec == fsm[estado].time){ // despues del tiempo definido pase de estado
+        estado = fsm[estado].next[boton];
+        intr_count = 0;
+        sec = 0;
+        msec =0;
+      }
+      else{
+        estado = CO; // si no se cumple la condicion de tiempo siga parpadeando
+      }
       break;
 
-    case nivel2:
-      PORTB = (0<<PB0)|(0<<PB1)|(0<<PB2)|(randomRange(0, 1, randomNum())<<PB3)|(randomRange(0, 1, randomNum())<<PB4)|(0<<PB5)|(0<<PB6)|(0<<PB7);  _delay_ms (500); 
-      //GIMSK |= (1<<INT7);  
-      DDRB = 0x10; //Entrada PB7
-      PORTB = 0x00;  _delay_ms (500);
-      if(1<<PB7){
-        estado = nivel3;
-      } else {
-        estado = inicio; }
+    default:
       break;
-
-    case nivel3:
-      PORTB = 0X10; _delay_ms (10000);
-      break;
-  
   }
 }
+
 
 // Interrupt service routine
 ISR (INT1_vect){        // Interrupt service routine     
-  boton = 1;
+  boton = ON;
 }
 
-//ISR (INT7_vect){        // Interrupt service routine     
-  //boton_rojo = 1;
-//}
-
+ISR (TIMER0_OVF_vect){      //Interrupt vector for Timer0
+  if (intr_count == 20){  //cuenta un tercio de segundo 
+    if(estado == ST){ 
+      (fsm[ST].stateptr)(); // parpadear
+    }
+    ++msec; //contador de tercios de segundo
+  }
+  if (intr_count == 60){    // cuenta un segundo 
+    intr_count = 0;
+    ++sec; // cuenta un segundo 
+  }
+  else intr_count++;
+}
 
 int main(void){
-  DDRB = 0x00; //configuracion de puerto
-  DDRD = 0x01;
   setup_boton();
-  //timer_setup();
-  estado  = inicio;  // Estado inicial de la maquina esperando el boton de inicio
+  timer_setup();
+  estado = CO;  // Estado inicial de la maquina, carros avanzando
   while (1) {
-    fsm();
+    engine_fsm();
   }
-}
-
-
-// Funciones Random de Adrian
-int randomNum()
-{ 
-  int next = 710467;
-         
-  next = ((next * next) / 100 ) % 10000 ; 
-  return next ; 
-} 
- 
-int randomRange( int min, int max, int past_num )  
-{ 
-  return past_num % (max+1-min) + min ;  
 }
