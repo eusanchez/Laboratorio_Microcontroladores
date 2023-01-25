@@ -1,25 +1,26 @@
+//Ana Eugenia Sanchez Villalobos
 #include <pic14/pic12f683.h>
 typedef unsigned int word;
-//word __at 0x2007 __CONFIG = (_BOREN_OFF);
 word __at 0x2007 __CONFIG = (_BOREN_OFF & _WDT_OFF);
-
+ 
 void delay (unsigned int tiempo);
 int contador = 0;
  
 void main(){
 
-    ANSEL = 0;
-    //CMCON = 7;
-    TRISIO=0b00100000;      
-    GPIO = 0;
+    ANSEL = 0; // 
+    CMCON0 = 7;
+    TRISIO=0b00100000;    //GP5 as input  
+    GPIO = 0; //Poner pines en abajo
 
+	//Loop forever
 	while(1)
 	{
 		contador = contador + 1;
 		if (GP5 == 1){
 			if(contador==1){
 				GP0=1;
-				delay(10000);	
+				delay(500);	
 				GP0=0;
 				delay(500);	
 				contador=0;
@@ -27,7 +28,7 @@ void main(){
 			}
 			if(contador==2){
 				GP1=1;
-				delay(10000);
+				delay(500);
 				GP1=0;
 				delay(500);	
 				contador=0;
@@ -36,7 +37,7 @@ void main(){
 			if(contador==3){
 				GP0=1;
 				GP1=1;
-				delay(10000);
+				delay(500);
 				GP0=0;
 				GP1=0;
 				delay(500);	
@@ -47,7 +48,7 @@ void main(){
 			{
 				GP1=1;
 				GP2=1;
-				delay(10000);
+				delay(500);
 				GP1=0;
 				GP2=0;
 				delay(500);	
@@ -59,7 +60,7 @@ void main(){
 				GP0=1;
 				GP1=1;
 				GP2=1;
-				delay(10000);
+				delay(500);
 				GP0=0;
 				GP1=0;
 				GP2=0;
@@ -72,7 +73,7 @@ void main(){
 				GP4=1;
 				GP1=1;
 				GP2=1;
-				delay(10000);
+				delay(500);
 				GP4=0;
 				GP1=0;
 				GP2=0;
