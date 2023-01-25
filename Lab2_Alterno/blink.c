@@ -1,6 +1,8 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#define F_CPU 1024000UL
+
 
 #define IDLE 0 //se encienden cuatro leds
 #define START 1 //las leds parpadean por dos segundos
@@ -8,10 +10,7 @@
 #define CHECK 3 //se enciende un led
 #define RESET 4 //se encienden tres leds
 
-int intr_count = 0;
-int sec = 0;
-int msec = 0;
-int playing, state, button, turn, counter, seed_counter, indicador;
+int playing, state, button, turn, counter, seed_counter, indicador, time_counter, time;
 int user_input[14]; 
 int secuencia[14]; 
 
@@ -26,15 +25,6 @@ void reset_arrays(){
   }
 }
 
-void timer_setup(){ //Funcion de configuracion del timer
-  TCCR0A=0x00;   //Se usa el modo normal de operacion del timer
-  TCCR0B=0x00;
-  TCCR0B |= (1<<CS00)|(1<<CS02);   //prescaling usando el 1024
-  TCNT0=0;
-  TIMSK|=(1<<TOIE0); //habilitando la interrupcion en TOIE0
-}
-
-
 void setup(){
   // Puertos e interrupciones generales y exteriores
   DDRB = 0x0F; // Configuracion del puerto B, 0 es input y 1 es output
@@ -44,12 +34,16 @@ void setup(){
   MCUCR = 0x0A; // Cualquier cambio lógico (toggle) en INT0-1 generan una interrupción. 
 
   // Config de los timers internos
+  TCCR0A=0x00;
+  TCCR0B=0x00;
   TCCR0A|=(1<<WGM01);//CTC mode
   TCCR0B |= (1<<CS00)|(1<<CS02); //prescaling con 1024
+  TCNT0 = 0;
 
   
   state = IDLE;
-  playing = 0, button = 0, counter = 0, seed_counter = 0, indicador = 1; turn = 1; 
+  playing = 0, button = 0, counter = 0, seed_counter = 0, time_counter = 0, 
+  indicador = 1, turn = 1, time = 2000; 
 
   sei(); // Habilitamos dentro de C las ISRs.
   srand(seed_counter); // Sirve para crear una semilla para los números random. 
@@ -75,28 +69,38 @@ void blink(){
 }
 
 void simon_blink(){
-   for(int i = 0; i < turn; i++){
-          switch(secuencia[i]){
-            case 1:
-              PORTB = 0b00001000;  _delay_ms(2000);
-              PORTB = 0x00; 
-              break;
-            case 2:
-              PORTB = 0b00000100;  _delay_ms(2000);
-              PORTB = 0x00; 
-              break;
-            case 3:
-              PORTB = 0b00000010;  _delay_ms(2000);
-              PORTB = 0x00; 
-              break;
-            case 4:
-              PORTB = 0b00000001;  _delay_ms(2000);
-              PORTB = 0x00; 
-              break;
-            default:
-              break;
-          }
-        }
+  for(int i = 0; i < turn; i++){
+    switch(secuencia[i]){
+      case 1:
+        PORTB = 0b00001000;  //_delay_ms(2000);
+        //OCR0A = 1; TIMSK|=(1<<OCIE0A);
+        PORTB = 0x00; 
+        break;
+
+      case 2:
+        PORTB = 0b00000100;  //_delay_ms(2000);
+        //OCR0A = 1; TIMSK|=(1<<OCIE0A);
+        PORTB = 0x00; 
+        break;
+
+      case 3:
+        //PORTB = 0b00000010;  //_delay_ms(2000);
+        TIMSK|=(1<<OCIE0A); TCNT0=0; OCR0A = 0; 
+        //PORTB = 0x00; 
+        break;
+
+      case 4:
+        PORTB = 0b00000001;  //_delay_ms(2000);
+        //OCR0A = 1; TIMSK|=(1<<OCIE0A);
+        PORTB = 0x00; 
+        break;
+
+      default:
+        break;
+    }
+  
+  }
+  time-=200;
 }
 
 void check(){
@@ -129,7 +133,6 @@ int main(void){
         simon_blink();
         state = CHECK;        
         break;
-       //_delay_ms(5000); SIRVE POR MEDIO DEL DELAY. 
 
       case CHECK:
         if (counter == turn){
@@ -157,7 +160,7 @@ int main(void){
     
       case RESET:
         blink(); // Si el usuario perdió, vamos a RESET y encendemos LEDs 3 veces. 
-        button = 0, counter = 0, turn = 1, indicador = 1;
+        button = 0, counter = 0, turn = 1, indicador = 1, time = 2000;
         state = IDLE;
         reset_arrays();
         srand(seed_counter);
@@ -218,6 +221,17 @@ ISR(PCINT_A_vect) // Pin PA2
     user_input[counter] = button;
     counter++;
   }
+}
+
+ISR(TIMER0_COMPA_vect){ // Cuando ocurre la INT el counter (OCR0A) se pone en 0.
+  PORTB = 0b00000010;
+  while(time_counter < 10000){
+    time_counter++;
+  }
+  PORTB = 0x00;
+  time_counter = 0;
+  TIMSK = 0x00; 
+  
 }
 
 
