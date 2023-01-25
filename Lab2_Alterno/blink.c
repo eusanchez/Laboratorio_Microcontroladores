@@ -1,8 +1,6 @@
 #include <avr/io.h>
-#include <util/delay.h>
 #include <avr/interrupt.h>
-#define F_CPU 1024000UL
-
+#include<util/delay.h>
 
 #define IDLE 0 //se encienden cuatro leds
 #define START 1 //las leds parpadean por dos segundos
@@ -10,7 +8,7 @@
 #define CHECK 3 //se enciende un led
 #define RESET 4 //se encienden tres leds
 
-int playing, state, button, turn, counter, seed_counter, indicador, time_counter, time;
+int playing, state, button, turn, counter, seed_counter, indicador, units_counter, time, enable;
 int user_input[14]; 
 int secuencia[14]; 
 
@@ -34,15 +32,12 @@ void setup(){
   MCUCR = 0x0A; // Cualquier cambio lógico (toggle) en INT0-1 generan una interrupción. 
 
   // Config de los timers internos
-  TCCR0A=0x00;
-  TCCR0B=0x00;
-  TCCR0A|=(1<<WGM01);//CTC mode
-  TCCR0B |= (1<<CS00)|(1<<CS02); //prescaling con 1024
-  TCNT0 = 0;
+  // Lo usamos en modo normal 
+  TCCR0B = 0b011; //prescaling con 64
+  TCNT0 = 0; // Inicializamos registro del contador interno del Timer0. 
 
-  
   state = IDLE;
-  playing = 0, button = 0, counter = 0, seed_counter = 0, time_counter = 0, 
+  playing = 0, button = 0, counter = 0, seed_counter = 0, units_counter = 0, enable = 0;
   indicador = 1, turn = 1, time = 2000; 
 
   sei(); // Habilitamos dentro de C las ISRs.
@@ -50,20 +45,35 @@ void setup(){
   reset_arrays(); 
 }
 
+void delay(int overflows){
+  TIMSK = 0b10;
+  enable = 1;
+  units_counter = 0;
+  TCNT0 = 0;
+  while(1){
+    if(units_counter >= overflows) break;
+    else PORTB = ~PORTB;
+    //PORTB &= 0xFF;
+  }
+  PORTB = 0x00;
+  TIMSK = 0b00;
+  enable = 0;
+}
+
 void blink(){
   if (state == START){
-    PORTB = 0x0F;  _delay_ms(500);
-    PORTB = 0x00; _delay_ms(500);
-    PORTB = 0x0F; _delay_ms(500);
-    PORTB = 0x00; _delay_ms(500);
+    PORTB = 0x0F; delay(250);
+    PORTB = 0x00; delay(250);
+    PORTB = 0x0F; delay(250);
+    PORTB = 0x00; 
   }
   else{
-    PORTB = 0x0F;  _delay_ms(500);
-    PORTB = 0x00; _delay_ms(500);
-    PORTB = 0x0F; _delay_ms(500);
-    PORTB = 0x00; _delay_ms(500);
-    PORTB = 0x0F; _delay_ms(500);
-    PORTB = 0x00; _delay_ms(500);
+    PORTB = 0x0F; delay(2000);
+    PORTB = 0x00; 
+    PORTB = 0x0F; delay(2000);
+    PORTB = 0x00; 
+    PORTB = 0x0F; delay(2000);
+    PORTB = 0x00; 
   }
   
 }
@@ -72,26 +82,22 @@ void simon_blink(){
   for(int i = 0; i < turn; i++){
     switch(secuencia[i]){
       case 1:
-        PORTB = 0b00001000;  //_delay_ms(2000);
-        //OCR0A = 1; TIMSK|=(1<<OCIE0A);
+        PORTB = 0b00001000; delay(time);
         PORTB = 0x00; 
         break;
 
       case 2:
-        PORTB = 0b00000100;  //_delay_ms(2000);
-        //OCR0A = 1; TIMSK|=(1<<OCIE0A);
+        PORTB = 0b00000100; delay(time);
         PORTB = 0x00; 
         break;
 
       case 3:
-        //PORTB = 0b00000010;  //_delay_ms(2000);
-        TIMSK|=(1<<OCIE0A); TCNT0=0; OCR0A = 0; 
-        //PORTB = 0x00; 
+        PORTB = 0b00000010; delay(time);
+        PORTB = 0x00; 
         break;
 
       case 4:
-        PORTB = 0b00000001;  //_delay_ms(2000);
-        //OCR0A = 1; TIMSK|=(1<<OCIE0A);
+        PORTB = 0b00000001; delay(time);
         PORTB = 0x00; 
         break;
 
@@ -173,6 +179,11 @@ int main(void){
   return 0;
 }
 
+ISR(TIMER0_OVF_vect)
+{ 
+  if (enable) units_counter++;
+}
+
 ISR(INT0_vect) // Pin PD2
 {
   button = 1;
@@ -223,16 +234,7 @@ ISR(PCINT_A_vect) // Pin PA2
   }
 }
 
-ISR(TIMER0_COMPA_vect){ // Cuando ocurre la INT el counter (OCR0A) se pone en 0.
-  PORTB = 0b00000010;
-  while(time_counter < 10000){
-    time_counter++;
-  }
-  PORTB = 0x00;
-  time_counter = 0;
-  TIMSK = 0x00; 
-  
-}
+
 
 
 /*#include <avr/io.h>
