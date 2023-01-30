@@ -14,9 +14,7 @@ print("Se conecto correctamente")
 file = open(filename, 'w')
 print("Se creo el archivo csv correctamente")
 
-line = 0
 contador  = 0
-datos = []
 
 
 while (1):
@@ -24,7 +22,7 @@ while (1):
     data = getData[2:][:-5] 
     print(data)
 
-    if contador == 4
+    if contador == 4:
         file = open(filename, "a")
         file.write(data + "\n")
         contador = 0
