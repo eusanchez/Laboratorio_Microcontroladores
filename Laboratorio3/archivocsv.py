@@ -16,7 +16,6 @@ print("Se creo el archivo csv correctamente")
 
 contador  = 0
 
-
 while (1):
     getData = str(ser.readline())
     data = getData[2:][:-5] 
