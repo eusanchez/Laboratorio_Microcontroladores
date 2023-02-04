@@ -22,6 +22,10 @@ void setup(){
   Serial.begin(9600); //Inicio del puerto Serial
   //Configira los pines como salida
   pinMode(9,OUTPUT);
+  pinMode(10,OUTPUT);
+  pinMode(11,OUTPUT);
+  pinMode(12,OUTPUT);
+  
   //Inicia la pantalla y se selecciona el contraste
   display.begin();
   display.setContrast(75);
