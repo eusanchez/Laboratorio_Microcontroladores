@@ -44,24 +44,74 @@ void setup(){
 }
 
 
-  
+//------------------------------------------- Luces LEDs de precaucion para los canales A a D ---------------------------------------\\
 // Aqui solo se revisa el valor RMS maximo, el cual es 20/sqrt(2) = 14.14
 void precaucion_AC(float vA){
-  if(vA > 14.14) digitalWrite(9, HIGH);
-  else digitalWrite(9, LOW); //led apagado
+  if(vA > 14.14) digitalWrite(9, HIGH); // encendemos LED de precaución del canal A
+  else digitalWrite(9, LOW); // apagamos LED de precaución del canal A
+
+  if(vB > 14.14) digitalWrite(10, HIGH); 
+  else digitalWrite(9, LOW); 
+
+  if(vC > 14.14) digitalWrite(11, HIGH);
+  else digitalWrite(9, LOW);
+
+  if(vD > 14.14) digitalWrite(12, HIGH);
+  else digitalWrite(9, LOW); 
 }
 
 
 void precaucion_DC(float vA){
-  if( vA > 20 || vA < -20) digitalWrite(10, HIGH);
+  if( vA > 20 || vA < -20) digitalWrite(9, HIGH);
+  else digitalWrite(10, LOW); 
+
+  if( vB > 20 || vB < -20) digitalWrite(10, HIGH);
+  else digitalWrite(10, LOW); 
+
+  if( vC > 20 || vC < -20) digitalWrite(11, HIGH);
+  else digitalWrite(10, LOW); 
+
+  if( vD > 20 || vD < -20) digitalWrite(12, HIGH);
   else digitalWrite(10, LOW); 
 }
 
 
 
-//------------------------------------------- Funciones para el calculo del valor maximo en modo AC ---------------------------------------\\
-//Obtiene el valor de la amplitud de la onda para el primer puerto
+//------------------------------------------- Funciones para calcular amplitud de señales AC ---------------------------------------\\
+// REVISAR PUERTOS PARA PROBAR FUNCIONALIDAD!!!!!!!!
+// Conseguimos amplitud de señal AC del canal A.
 float get_max_vA() {
+  float max_v = 0.00;
+  for(int i = 0; i < 100; i++) {
+    float r = analogRead(A0);  
+    if(max_v < r) max_v = r;
+    delayMicroseconds(200);
+  }
+  return max_v;
+}
+
+// Conseguimos amplitud de señal AC del canal B.
+float get_max_vB() {
+  float max_v = 0.00;
+  for(int i = 0; i < 100; i++) {
+    float r = analogRead(A1);  
+    if(max_v < r) max_v = r;
+    delayMicroseconds(200);
+  }
+  return max_v;
+}
+
+float get_max_vC() {
+  float max_v = 0.00;
+  for(int i = 0; i < 100; i++) {
+    float r = analogRead(A2);  
+    if(max_v < r) max_v = r;
+    delayMicroseconds(200);
+  }
+  return max_v;
+}
+
+float get_max_vD() {
   float max_v = 0.00;
   for(int i = 0; i < 100; i++) {
     float r = analogRead(A3);  
@@ -71,6 +121,8 @@ float get_max_vA() {
   return max_v;
 }
 
+
+//----------------------------------------------- Loop principal -----------------------------------------------------------------------
 void loop(){
 
   button = analogRead(A4); // Revisa si el button de modo (AC/DC) esta encendido
