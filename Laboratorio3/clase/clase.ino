@@ -7,8 +7,8 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
 //Definicion de variables globales
 float VA= {0.00};
 float vAk = {0.00};
-float boton = {0.00};
-float interruptor = {0.00};
+float button = {0.00};
+float comms = {0.00};
 float k1= {4.8};
 float threshold = {1.00};
 bool etiqueta = true;
@@ -43,16 +43,21 @@ void setup(){
 
 }
 
-//Funcion encargada de encender los leds de emergencia 
+
   
-//Como la funcion AC devuelve valores RMS es importante hacer una funcion de alarma con los valores RMS
+// Aqui solo se revisa el valor RMS maximo, el cual es 20/sqrt(2) = 14.14
 void precaucion_AC(float vA){
-  if((vA >= 16.9)){ //23.9/sqrt(2) = 16.9
-      digitalWrite(9, HIGH);
-    }
-  else{
-      digitalWrite(9, LOW); //led apagado
-    }   }
+  if(vA > 14.14) digitalWrite(9, HIGH);
+  else digitalWrite(9, LOW); //led apagado
+}
+
+
+void precaucion_DC(float vA){
+  if( vA > 20 || vA < -20) digitalWrite(10, HIGH);
+  else digitalWrite(10, LOW); 
+}
+
+
 
 //------------------------------------------- Funciones para el calculo del valor maximo en modo AC ---------------------------------------\\
 //Obtiene el valor de la amplitud de la onda para el primer puerto
@@ -68,11 +73,11 @@ float get_max_vA() {
 
 void loop(){
 
-  boton = analogRead(A4); // Revisa si el boton de modo (AC/DC) esta encendido
-  interruptor = analogRead(A5); //Transmision
+  button = analogRead(A4); // Revisa si el button de modo (AC/DC) esta encendido
+  comms = analogRead(A5); //Transmision
 
 
-  if (interruptor > 3.00){
+  if (comms > 3.00){
     while (etiqueta){
       Serial.println("Canal 1");
       Serial.println("AC/DC");
@@ -80,14 +85,14 @@ void loop(){
     }
   }
   
-  if (boton > 3.00){ // Si el boton esta encendido mida AC
+  if (button > 3.00){ // Si el button esta encendido mida AC
     
     float VAC1 = get_max_vA();
-    VAC1 = ((((VAC1*5)/1023)*k1)-12);
+    VAC1 = ((((VAC1*5)/1023)*k1)-24);
     if ((VAC1+0.65) == 12) VAC1 += 0.65;  
     VAC1 /= sqrt(2); // Obtiene el valor RMS
 
-    if (interruptor > 3.00){
+    if (comms > 3.00){
       if ((corrienteA >= VAC1+threshold || corrienteA <= VAC1-threshold)){
         Serial.println(VAC1);
         Serial.println("AC");
@@ -105,16 +110,13 @@ void loop(){
 
     precaucion_AC(VAC1);
     
-  } else{ // si switch esta cerrado mide DC
+  } else{ // si comms esta cerrado mide DC
 
     //Valores DC 
     vA = analogRead(A3);
+    vAk = (((vA*5)/1023)*k1)-24;
 
-
-     //Transformar el rango de 0 a 5 (rango aceptado por Arduino) a 0 a 24 (rango requerido)
-    vAk = (((vA*5)/1023)*k1)-12;
-
-    if (interruptor > 3.00){
+    if (comms > 3.00){
       if (corrienteA >= vAk+threshold || corrienteA <= vAk-threshold){
         Serial.println(vAk);
         Serial.println("DC");
