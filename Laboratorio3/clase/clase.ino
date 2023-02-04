@@ -5,11 +5,12 @@
 Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
 
 //Definicion de variables globales
-float VA= {0.00};
-float vAk = {0.00};
-float button = {0.00};
-float comms = {0.00};
-float k1= {4.8};
+float VA, VB, VC, VD = {0.00};
+float vAk, vBk, vCk, vDk = {0.00};
+
+float button, comms = {0.00};
+
+float converting_factor = {4.8};
 float threshold = {1.00};
 bool etiqueta = true;
 
@@ -42,40 +43,6 @@ void setup(){
   display.clearDisplay();   //Limpia el display
 
 }
-
-
-//------------------------------------------- Luces LEDs de precaucion para los canales A a D ---------------------------------------\\
-// Aqui solo se revisa el valor RMS maximo, el cual es 20/sqrt(2) = 14.14
-void precaucion_AC(float vA){
-  if(vA > 14.14) digitalWrite(9, HIGH); // encendemos LED de precaución del canal A
-  else digitalWrite(9, LOW); // apagamos LED de precaución del canal A
-
-  if(vB > 14.14) digitalWrite(10, HIGH); 
-  else digitalWrite(9, LOW); 
-
-  if(vC > 14.14) digitalWrite(11, HIGH);
-  else digitalWrite(9, LOW);
-
-  if(vD > 14.14) digitalWrite(12, HIGH);
-  else digitalWrite(9, LOW); 
-}
-
-
-void precaucion_DC(float vA){
-  if( vA > 20 || vA < -20) digitalWrite(9, HIGH);
-  else digitalWrite(10, LOW); 
-
-  if( vB > 20 || vB < -20) digitalWrite(10, HIGH);
-  else digitalWrite(10, LOW); 
-
-  if( vC > 20 || vC < -20) digitalWrite(11, HIGH);
-  else digitalWrite(10, LOW); 
-
-  if( vD > 20 || vD < -20) digitalWrite(12, HIGH);
-  else digitalWrite(10, LOW); 
-}
-
-
 
 //------------------------------------------- Funciones para calcular amplitud de señales AC ---------------------------------------\\
 // REVISAR PUERTOS PARA PROBAR FUNCIONALIDAD!!!!!!!!
@@ -121,6 +88,37 @@ float get_max_vD() {
   return max_v;
 }
 
+//------------------------------------------- Luces LEDs de precaucion para los canales A a D ---------------------------------------\\
+// Aqui solo se revisa el valor RMS maximo, el cual es 20/sqrt(2) = 14.14
+void precaucion_AC(float vA){
+  if(vA > 14.14) digitalWrite(9, HIGH); // encendemos LED de precaución del canal A
+  else digitalWrite(9, LOW); // apagamos LED de precaución del canal A
+
+  if(vB > 14.14) digitalWrite(10, HIGH); 
+  else digitalWrite(9, LOW); 
+
+  if(vC > 14.14) digitalWrite(11, HIGH);
+  else digitalWrite(9, LOW);
+
+  if(vD > 14.14) digitalWrite(12, HIGH);
+  else digitalWrite(9, LOW); 
+}
+
+
+void precaucion_DC(float vA){
+  if( vA > 20 || vA < -20) digitalWrite(9, HIGH);
+  else digitalWrite(10, LOW); 
+
+  if( vB > 20 || vB < -20) digitalWrite(10, HIGH);
+  else digitalWrite(10, LOW); 
+
+  if( vC > 20 || vC < -20) digitalWrite(11, HIGH);
+  else digitalWrite(10, LOW); 
+
+  if( vD > 20 || vD < -20) digitalWrite(12, HIGH);
+  else digitalWrite(10, LOW); 
+}
+
 
 //----------------------------------------------- Loop principal -----------------------------------------------------------------------
 void loop(){
@@ -140,7 +138,7 @@ void loop(){
   if (button > 3.00){ // Si el button esta encendido mida AC
     
     float VAC1 = get_max_vA();
-    VAC1 = ((((VAC1*5)/1023)*k1)-24);
+    VAC1 = ((((VAC1*5)/1023)*converting_factor)-24);
     if ((VAC1+0.65) == 12) VAC1 += 0.65;  
     VAC1 /= sqrt(2); // Obtiene el valor RMS
 
@@ -166,7 +164,7 @@ void loop(){
 
     //Valores DC 
     vA = analogRead(A3);
-    vAk = (((vA*5)/1023)*k1)-24;
+    vAk = (((vA*5)/1023)*converting_factor)-24;
 
     if (comms > 3.00){
       if (corrienteA >= vAk+threshold || corrienteA <= vAk-threshold){
