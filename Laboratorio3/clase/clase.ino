@@ -10,21 +10,20 @@ float vAk, vBk, vCk, vDk = {0.00};
 
 float button, comms = {0.00};
 
-float converting_factor = {4.8};
+float converting_factor = {9.6};
 float threshold = {1.00};
 bool etiqueta = true;
 
-float corrienteA = {0.00};
-
+float corrienteA, corrienteB, corrienteC, corrienteD = {0.00};
 
 //Funcion de Setup para los puertos y pantalla 
 void setup(){
   Serial.begin(9600); //Inicio del puerto Serial
   //Configira los pines como salida
+  pinMode(8,OUTPUT);
   pinMode(9,OUTPUT);
   pinMode(10,OUTPUT);
   pinMode(11,OUTPUT);
-  pinMode(12,OUTPUT);
   
   //Inicia la pantalla y se selecciona el contraste
   display.begin();
@@ -133,7 +132,10 @@ void loop(){
 
   if (comms > 3.00){
     while (etiqueta){
-      Serial.println("Canal 1");
+      Serial.println("Channel 1");
+      Serial.println("Channel 2");
+      Serial.println("Channel 3");
+      Serial.println("Channel 4");
       Serial.println("AC/DC");
       etiqueta = false;  
     }
@@ -143,15 +145,30 @@ void loop(){
     
     float VAC1 = get_max_vA();
     VAC1 = ((((VAC1*5)/1023)*converting_factor)-24);
-    if ((VAC1+0.65) == 12) VAC1 += 0.65;  
+   
     VAC1 /= sqrt(2); // Obtiene el valor RMS
 
+    float VAC2 = get_max_vB();
+    VAC2 = ((((VAC2*5)/1023)*converting_factor)-24);
+ 
+    VAC2 /= sqrt(2); // Obtiene el valor RMS
+
+    float VAC3 = get_max_vC();
+    VAC3 = ((((VAC3*5)/1023)*converting_factor)-24);
+
+    VAC3 /= sqrt(2); // Obtiene el valor RMS
+
+    float VAC4 = get_max_vD();
+    VAC4 = ((((VAC4*5)/1023)*converting_factor)-24);
+    //if ((VAC4+0.65) == 12) VAC4 += 0.65;  
+    VAC4 /= sqrt(2); // Obtiene el valor RMS
+
     if (comms > 3.00){
-      if ((corrienteA >= VAC1+threshold || corrienteA <= VAC1-threshold)){
-        Serial.println(VAC1);
-        Serial.println("AC");
-        corrienteA = VAC1;
-      }
+      Serial.println(VAC1);
+      Serial.println(VAC2);
+      Serial.println(VAC3);
+      Serial.println(VAC4);
+      Serial.println("AC");
     }
 
     //Pantalla
@@ -159,23 +176,35 @@ void loop(){
     display.print("Voltimetro AC \n");
     display.print("--------------");
     display.print("vA: ", VAC1, " Vrms\n");
+    display.print("vB: ", VAC2, " Vrms\n");
+    display.print("vC: ", VAC3, " Vrms\n");
+    display.print("vD: ", VAC4, " Vrms\n");
     display.display();
     display.clearDisplay();
 
-    precaucion_AC(VAC1);
-    
-  } else{ // si comms esta cerrado mide DC
+    precaucion_AC(VAC1, VAC2, VAC3, VAC4);
+
+  } 
+  else{ // si comms esta cerrado mide DC
 
     //Valores DC 
-    vA = analogRead(A3);
+    vA = analogRead(A0);
+    vB = analogRead(A1);
+    vC = analogRead(A2);
+    vD = analogRead(A3);
+
+
     vAk = (((vA*5)/1023)*converting_factor)-24;
+    vBk = (((vB*5)/1023)*converting_factor)-24;
+    vCk = (((vC*5)/1023)*converting_factor)-24;
+    vDk = (((vD*5)/1023)*converting_factor)-24;
 
     if (comms > 3.00){
-      if (corrienteA >= vAk+threshold || corrienteA <= vAk-threshold){
-        Serial.println(vAk);
-        Serial.println("DC");
-        corrienteA = vAk;
-      }
+      Serial.println(vAk);
+      Serial.println(vBk);
+      Serial.println(vCk);
+      Serial.println(vDk);
+      Serial.println("DC");
     }
     //Pantalla 
   
@@ -183,10 +212,16 @@ void loop(){
     display.print("--------------");
     display.print("vA: ");
     display.print(vAk,"V\n");
+    display.print("vB: ");
+    display.print(vBk,"V\n");
+    display.print("vC: ");
+    display.print(vCk,"V\n");
+    display.print("vD: ");
+    display.print(vDk,"V\n");
     display.display();
     display.clearDisplay();
 
-    precaucion_DC(vAk);
+    precaucion_DC(vAk, vBk, vCk, vDk);
   }
 }
 
