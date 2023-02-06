@@ -93,33 +93,33 @@ float get_max_vD() {
 
 //------------------------------------------- Luces LEDs de precaucion para los canales A a D ---------------------------------------\\
 // Aqui solo se revisa el valor RMS maximo, el cual es 20/sqrt(2) = 14.14
-void precaucion_AC(float vA){
+void precaucion_AC(float vA, float vB, float vC, float vD){
   if(vA > 14.14) digitalWrite(9, HIGH); // encendemos LED de precaución del canal A
   else digitalWrite(9, LOW); // apagamos LED de precaución del canal A
 
   if(vB > 14.14) digitalWrite(10, HIGH); 
-  else digitalWrite(9, LOW); 
+  else digitalWrite(10, LOW); 
 
   if(vC > 14.14) digitalWrite(11, HIGH);
-  else digitalWrite(9, LOW);
+  else digitalWrite(11, LOW);
 
   if(vD > 14.14) digitalWrite(12, HIGH);
-  else digitalWrite(9, LOW); 
+  else digitalWrite(12, LOW); 
 }
 
 
-void precaucion_DC(float vA){
+void precaucion_DC(float vA, float vB, float vC, float vD){
   if( vA > 20 || vA < -20) digitalWrite(9, HIGH);
-  else digitalWrite(10, LOW); 
+  else digitalWrite(9, LOW); 
 
   if( vB > 20 || vB < -20) digitalWrite(10, HIGH);
   else digitalWrite(10, LOW); 
 
   if( vC > 20 || vC < -20) digitalWrite(11, HIGH);
-  else digitalWrite(10, LOW); 
+  else digitalWrite(11, LOW); 
 
   if( vD > 20 || vD < -20) digitalWrite(12, HIGH);
-  else digitalWrite(10, LOW); 
+  else digitalWrite(12, LOW); 
 }
 
 
