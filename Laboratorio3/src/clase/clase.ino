@@ -17,6 +17,7 @@ bool etiqueta = true;
 float corrienteA, corrienteB, corrienteC, corrienteD = {0.00};
 
 //Funcion de Setup para los puertos y pantalla 
+//Funcion de Setup para los puertos y pantalla 
 void setup(){
   Serial.begin(9600); //Inicio del puerto Serial
   //Configira los pines como salida
@@ -24,7 +25,6 @@ void setup(){
   pinMode(9,OUTPUT);
   pinMode(10,OUTPUT);
   pinMode(11,OUTPUT);
-  
   //Inicia la pantalla y se selecciona el contraste
   display.begin();
   display.setContrast(75);
@@ -94,32 +94,32 @@ float get_max_vD() {
 //------------------------------------------- Luces LEDs de precaucion para los canales A a D ---------------------------------------\\
 // Aqui solo se revisa el valor RMS maximo, el cual es 20/sqrt(2) = 14.14
 void precaucion_AC(float vA, float vB, float vC, float vD){
-  if(vA > 14.14) digitalWrite(9, HIGH); // encendemos LED de precaución del canal A
-  else digitalWrite(9, LOW); // apagamos LED de precaución del canal A
+  if(vA > 14.14) digitalWrite(8, HIGH); // encendemos LED de precaución del canal A
+  else digitalWrite(8, LOW); // apagamos LED de precaución del canal A
 
-  if(vB > 14.14) digitalWrite(10, HIGH); 
-  else digitalWrite(10, LOW); 
+  if(vB > 14.14) digitalWrite(9, HIGH); 
+  else digitalWrite(9, LOW); 
 
-  if(vC > 14.14) digitalWrite(11, HIGH);
-  else digitalWrite(11, LOW);
+  if(vC > 14.14) digitalWrite(10, HIGH);
+  else digitalWrite(10, LOW);
 
-  if(vD > 14.14) digitalWrite(12, HIGH);
-  else digitalWrite(12, LOW); 
+  if(vD > 14.14) digitalWrite(11, HIGH);
+  else digitalWrite(11, LOW); 
 }
 
 
 void precaucion_DC(float vA, float vB, float vC, float vD){
-  if( vA > 20 || vA < -20) digitalWrite(9, HIGH);
+  if( vA > 20 || vA < -20) digitalWrite(8, HIGH);
+  else digitalWrite(8, LOW); 
+
+  if( vB > 20 || vB < -20) digitalWrite(9, HIGH);
   else digitalWrite(9, LOW); 
 
-  if( vB > 20 || vB < -20) digitalWrite(10, HIGH);
+  if( vC > 20 || vC < -20) digitalWrite(10, HIGH);
   else digitalWrite(10, LOW); 
 
-  if( vC > 20 || vC < -20) digitalWrite(11, HIGH);
+  if( vD > 20 || vD < -20) digitalWrite(11, HIGH);
   else digitalWrite(11, LOW); 
-
-  if( vD > 20 || vD < -20) digitalWrite(12, HIGH);
-  else digitalWrite(12, LOW); 
 }
 
 
@@ -219,18 +219,25 @@ void loop(){
   
     display.print("Voltimetro DC \n");
     display.print("--------------");
-    display.print("vA: ");
-    display.print(vAk,"V\n");
-    display.print("vB: ");
-    display.print(vBk,"V\n");
-    display.print("vC: ");
-    display.print(vCk,"V\n");
-    display.print("vD: ");
-    display.print(vDk,"V\n");
+    display.print("VA: ");
+    display.print(vAk);
+    display.print(" V");
+    display.print("\n");
+    display.print("VB: ");
+    display.print(vBk);
+    display.print(" V");
+    display.print("\n");
+    display.print("VC: ");
+    display.print(vCk);
+    display.print(" V");
+    display.print("\n");
+    display.print("VD: ");
+    display.print(vDk);
+    display.print(" V");
+    display.print("\n");
     display.display();
     display.clearDisplay();
 
     precaucion_DC(vAk, vBk, vCk, vDk);
   }
 }
-
