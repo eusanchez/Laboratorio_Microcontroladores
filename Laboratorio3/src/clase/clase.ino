@@ -5,7 +5,7 @@
 Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
 
 //Definicion de variables globales
-float VA, VB, VC, VD = {0.00};
+float vA, vB, vC, vD = {0.00};
 float vAk, vBk, vCk, vDk = {0.00};
 
 float button, comms = {0.00};
@@ -175,10 +175,19 @@ void loop(){
     
     display.print("Voltimetro AC \n");
     display.print("--------------");
-    display.print("vA: ", VAC1, " Vrms\n");
-    display.print("vB: ", VAC2, " Vrms\n");
-    display.print("vC: ", VAC3, " Vrms\n");
-    display.print("vD: ", VAC4, " Vrms\n");
+    display.print("vA: ");
+    display.print(VAC1);
+    display.print(" Vrms");
+    display.print("vB: ");
+    display.print(VAC2);
+    display.print(" Vrms");
+    display.print("vC: ");
+    display.print(VAC3);
+    display.print(" Vrms");
+    display.print("vD: ");
+    display.print(VAC4);
+    display.print(" Vrms");
+    display.print("\n");
     display.display();
     display.clearDisplay();
 
