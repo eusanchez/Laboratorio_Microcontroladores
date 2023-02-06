@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import serial #Paquete de comunicacion arduino / python
 
 baud = 9600 #sample rate

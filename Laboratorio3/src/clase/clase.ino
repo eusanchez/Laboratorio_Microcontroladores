@@ -178,12 +178,15 @@ void loop(){
     display.print("vA: ");
     display.print(VAC1);
     display.print(" Vrms");
+    display.print("\n");
     display.print("vB: ");
     display.print(VAC2);
     display.print(" Vrms");
+    display.print("\n");
     display.print("vC: ");
     display.print(VAC3);
     display.print(" Vrms");
+    display.print("\n");
     display.print("vD: ");
     display.print(VAC4);
     display.print(" Vrms");
