@@ -193,7 +193,7 @@ int console_gets(char *s, int len)
  * on some of the pins, in this case connected to a
  * USART.
  */
-void console_setup(void)
+void console_setup(int baud_rate)
 {
 
 	/* MUST enable the GPIO clock in ADDITION to the USART clock */

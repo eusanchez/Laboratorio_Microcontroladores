@@ -3,14 +3,14 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
+#include <libopencm3/stm32/usart.h> 
 #include "clock.h"
 #include "console.h"
-#include <libopencm3/stm32/usart.h> 
 
 //Defines
 #define GYR_RNW			(1 << 7) /* Write when zero  (ahorita en 1, read)*/  
 #define GYR_MNS			(1 << 6) /* Multiple reads when 1 */
-#define GYR_WHO_AM_I		0x0F
+#define GYR_I_AM_AM_I		0x0F
 #define GYR_OUT_TEMP		0x26
 #define GYR_STATUS_REG		0x27
 #define GYR_CTRL_REG1		0x20
@@ -32,15 +32,11 @@
 #define L3GD20_SENSITIVITY_2000DPS (0.070F)        
 #define L3GD20_DPS_TO_RADS         (0.017453293F)  
 
-//Variables globales
-char *axes[] = { "X: ", "Y: ", "Z: " };
 
-//Definicion de funciones
-uint16_t read_reg(int reg); //referencia: f4
-void write_reg(uint8_t reg, uint8_t value); //referencia: f4
-uint8_t read_xyz(int16_t vecs[3]); //referencia: f4
-void spi_setup(void); //referencia: f3
+//Declaracion de funciones
 
+void spi_setup(void); 
+void format_acceleration(int num);
 
 //Funcion set_up referencia spi.c
 
@@ -71,72 +67,37 @@ void spi_setup(void)
 	spi_enable(SPI5);
 }
 
-//Funcion my_usart_print referencia spi-mems.c
-
-static void my_usart_print_int(uint32_t usart, int32_t value)
-{
-	int8_t i;
-	char buffer[25];
-	int8_t nr_digits = 0;
-
-	if (value < 0) {
-		usart_send_blocking(usart, '-');
-		value = value * -1;
-	}
-
-	if (value == 0) {
-		usart_send_blocking(usart, '0');
-	}
-
-	while (value > 0) {
-		buffer[nr_digits++] = "0123456789"[value % 10];
-		value /= 10;
-	}
-
-	for (i = nr_digits-1; i >= 0; i--) {
-		usart_send_blocking(usart, buffer[i]);
-	}
-
-	usart_send_blocking(usart, '\r');
-	usart_send_blocking(usart, '\n');
-}
-
 //Rutina de impresión de enteros
-
-int print_decimal(int);
-int print_decimal(int num)
+void format_acceleration(int num)
 {
-	char	is_signed = 0;
-	int		len = 0;
-	int		ndx = 0;
-	char	buf[10];
+	int	type, length, index = 0;
+	char buf[10];
 
 	if (num < 0) 
     {
-		is_signed++;
+		type++;
 		num = 0 - num;
 	}
-	buf[ndx++] = '\000';
+	buf[index++] = '\000';
 	do 
     {
-		buf[ndx++] = (num % 10) + '0';
+		buf[index++] = (num % 10) + '0';
 		num = num / 10;
 	} 
     while (num != 0);
-	ndx--;
-	if (is_signed != 0) 
+	index--;
+	if (type != 0) 
     {
 		console_putc('-');
-		len++;
+		length++;
 	}
-	while (buf[ndx] != '\000') {
-		console_putc(buf[ndx--]);
-		len++;
+	while (buf[index] != '\000') {
+		console_putc(buf[index--]);
+		length++;
 	}
-	return len; 
 }
 
-void reg(){
+void global_setup(){
 	clock_setup();
 	console_setup(115200); //numero a ingresar en el archivo de comunicacion .py
     spi_setup();
@@ -157,27 +118,23 @@ void reg(){
 	spi_read(SPI5);
 	gpio_set(GPIOC, GPIO1);
 }
+
 int main(void)
 {
-	int16_t vecs[3];
-	int16_t baseline[3];
-
-	reg();
-
-    console_puts("X\tY\tZ\n");
+	global_setup();
     
 	while (1) {
         uint8_t t;
-        uint8_t who;
+        uint8_t I_AM;
         int16_t X;
         int16_t Y;
         int16_t Z;
 
 		gpio_clear(GPIOC, GPIO1);             
-		spi_send(SPI5, GYR_WHO_AM_I | 0x80);
+		spi_send(SPI5, GYR_I_AM_AM_I | GYR_RNW);
 		spi_read(SPI5); 
 		spi_send(SPI5, 0);    
-		who=spi_read(SPI5);
+		I_AM=spi_read(SPI5);
 		gpio_set(GPIOC, GPIO1);
 
 		gpio_clear(GPIOC, GPIO1);
@@ -240,14 +197,13 @@ int main(void)
         Y = Y*L3GD20_SENSITIVITY_500DPS;
         Z = Z*L3GD20_SENSITIVITY_500DPS;
 
-	    print_decimal(X); 
+	    format_acceleration(X); 
 		console_puts("\t");
-        print_decimal(Y); 
+        format_acceleration(Y); 
 		console_puts("\t");
-        print_decimal(Z); 
+        format_acceleration(Z); 
 		console_puts("\n");
 
-		
 	}
 
 	return 0;
