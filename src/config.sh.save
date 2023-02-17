@@ -1,0 +1,2 @@
+#!/bin/sh
+soca t PTY,link=/dev/ttyS0,raw,echo=0

@@ -1,11 +1,15 @@
 //Librerías
 #include <stdint.h>
+#include <math.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/usart.h> 
 #include "clock.h"
 #include "console.h"
+#include "sdram.h"
+#include "lcd-spi.h"
+#include "gfx.h"
 
 //Defines
 #define GYR_RNW			(1 << 7) /* Write when zero  (ahorita en 1, read)*/  
@@ -146,6 +150,27 @@ void blinkingLED_setup(void){
 int main(void)
 {
 	global_setup();
+	sdram_init();
+    lcd_spi_init();
+    console_puts("LCD Initialized\n");
+    console_puts("Should have a checker pattern, press any key to proceed\n");
+    msleep(1500);
+    gfx_fillRoundRect(10, 10, 220, 220, 5, LCD_WHITE);
+    gfx_drawRoundRect(10, 10, 220, 220, 5, LCD_RED);
+    gfx_setTextSize(2);
+    gfx_setCursor(15, 25);
+    gfx_puts("STM32F4-DISCO");
+    gfx_setTextSize(1);
+    gfx_setCursor(15, 49);
+    gfx_puts("Display INFORMATION");
+    gfx_setCursor(15, 60);
+    gfx_puts("stuff on the LCD screen.");
+    lcd_show_frame();
+    console_puts("Now it has a bit of structured graphics.\n");
+    console_puts("Press a key for some infomation.\n");
+    msleep(1500);
+	gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
+    gfx_setTextSize(3);
     
 	while (1) {
 		if (gpio_get(GPIOA, GPIO0)) {
@@ -242,10 +267,10 @@ int main(void)
 
 		else gpio_clear(GPIOG, GPIO13);
 
-        
-
-	    
-	
+		gfx_fillScreen(LCD_BLACK);
+        gfx_setCursor(15, 36);
+        gfx_puts("Holi");
+        lcd_show_frame();
 	}
 
 	return 0;
