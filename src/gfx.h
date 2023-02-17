@@ -43,6 +43,7 @@ void gfx_setTextSize(uint8_t s);
 void gfx_setTextWrap(uint8_t w);
 void gfx_setRotation(uint8_t r);
 void gfx_puts(char *);
+void gfx_puts_int(uint16_t *);
 void gfx_write(uint8_t);
 
 uint16_t gfx_height(void);

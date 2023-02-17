@@ -442,6 +442,14 @@ void gfx_puts(char *s)
 	}
 }
 
+void gfx_puts_int(uint16_t *s)
+{
+	while (*s) {
+		gfx_write(*s);
+		s++;
+	}
+}
+
 /* Draw a character */
 void gfx_drawChar(int16_t x, int16_t y, unsigned char c,
 		  uint16_t color, uint16_t bg, uint8_t size)

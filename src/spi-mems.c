@@ -42,7 +42,6 @@ int comms_enable = 0;
 //Declaracion de funciones
 void global_setup(void);
 void spi_setup(void); 
-void format_acceleration(int num);
 void button_setup(void);
 void blinkingLED_setup(void);
 
@@ -100,35 +99,6 @@ void global_setup(){
 
 }
 
-void format_acceleration(int num)
-{
-	int	type, length, index = 0;
-	char buf[10];
-
-	if (num < 0) 
-    {
-		type++;
-		num = 0 - num;
-	}
-	buf[index++] = '\000';
-	do 
-    {
-		buf[index++] = (num % 10) + '0';
-		num = num / 10;
-	} 
-    while (num != 0);
-	index--;
-	if (type != 0) 
-    {
-		console_putc('-');
-		length++;
-	}
-	while (buf[index] != '\000') {
-		console_putc(buf[index--]);
-		length++;
-	}
-}
-
 void button_setup(void){
 	/* Enable GPIOA clock. */
 	rcc_periph_clock_enable(RCC_GPIOA);
@@ -151,27 +121,25 @@ int main(void)
 {
 	global_setup();
 	sdram_init();
-    lcd_spi_init();
-    console_puts("LCD Initialized\n");
-    console_puts("Should have a checker pattern, press any key to proceed\n");
-    msleep(1500);
-    gfx_fillRoundRect(10, 10, 220, 220, 5, LCD_WHITE);
-    gfx_drawRoundRect(10, 10, 220, 220, 5, LCD_RED);
-    gfx_setTextSize(2);
-    gfx_setCursor(15, 25);
-    gfx_puts("STM32F4-DISCO");
-    gfx_setTextSize(1);
-    gfx_setCursor(15, 49);
-    gfx_puts("Display INFORMATION");
-    gfx_setCursor(15, 60);
-    gfx_puts("stuff on the LCD screen.");
-    lcd_show_frame();
-    console_puts("Now it has a bit of structured graphics.\n");
-    console_puts("Press a key for some infomation.\n");
-    msleep(1500);
-	gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
-    gfx_setTextSize(3);
-    
+	lcd_spi_init();
+	msleep(2000);
+/*	(void) console_getc(1); */
+	gfx_init(lcd_draw_pixel, 240, 320);
+	gfx_fillScreen(LCD_WHITE);
+	gfx_setTextSize(2);
+	gfx_setCursor(15, 25);
+	gfx_puts("ACELERACIONES");
+	gfx_setTextSize(1);
+	gfx_setCursor(15, 49);
+	gfx_puts("Se van a desplegar los");
+	gfx_setCursor(15, 60);
+	gfx_puts("valores de x, y y z.");
+	lcd_show_frame();
+	msleep(2000);
+/*	(void) console_getc(1); */
+	gfx_setTextColor(LCD_WHITE, LCD_BLACK);
+	gfx_setTextSize(3);
+
 	while (1) {
 		if (gpio_get(GPIOA, GPIO0)) {
 			for (int i = 0; i < 3000000; i++) {	
@@ -186,6 +154,7 @@ int main(void)
 
 		uint8_t t, I_AM;
         int16_t X, Y, Z;
+		char X_str[100], Y_str[100], Z_str[100];
 
 		gpio_clear(GPIOC, GPIO1);             
 		spi_send(SPI5, GYR_I_AM_AM_I | GYR_RNW);
@@ -255,22 +224,51 @@ int main(void)
         Y = Y*L3GD20_SENSITIVITY_500DPS;
         Z = Z*L3GD20_SENSITIVITY_500DPS;
 
+		sprintf(X_str, "%d", X);
+		sprintf(Y_str, "%d", Y);
+		sprintf(Z_str, "%d", Z);
+
 		if (comms_enable) {
 			gpio_toggle(GPIOG, GPIO13);
-			format_acceleration(X); 
+			
+			console_puts(X_str);
 			console_puts("\t");
-			format_acceleration(Y); 
+			console_puts(Y_str);
 			console_puts("\t");
-			format_acceleration(Z); 
+			console_puts(Z_str);
 			console_puts("\n");
 		}
 
 		else gpio_clear(GPIOG, GPIO13);
 
 		gfx_fillScreen(LCD_BLACK);
-        gfx_setCursor(15, 36);
-        gfx_puts("Holi");
-        lcd_show_frame();
+		gfx_setCursor(50, 36); // (COLUMNA, FILA)
+		gfx_setTextSize(3);
+		gfx_puts("DATOS");
+
+		gfx_setCursor(15, 100);
+		gfx_setTextSize(2);
+		gfx_puts("X-Axis: ");
+		gfx_setCursor(150, 100); 
+		gfx_puts(X_str);
+
+		gfx_setCursor(15, 125);
+		gfx_puts("Y-Axis: ");
+		gfx_setCursor(150, 125);
+		gfx_puts(Y_str);
+
+		gfx_setCursor(15, 150);
+		gfx_puts("Z-Axis: ");
+		gfx_setCursor(150, 150);
+		gfx_puts(Z_str);
+
+
+		gfx_setCursor(15, 200);
+		gfx_setTextSize(1.5);
+		if (comms_enable) gfx_puts("Serial comms: ON");
+		else gfx_puts("Serial comms: OFF");
+		
+		lcd_show_frame();
 	}
 
 	return 0;
