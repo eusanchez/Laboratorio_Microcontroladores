@@ -32,13 +32,16 @@
 #define L3GD20_SENSITIVITY_2000DPS (0.070F)        
 #define L3GD20_DPS_TO_RADS         (0.017453293F)  
 
+// Variables globales
+int comms_enable = 0;
 
 //Declaracion de funciones
-
+void global_setup(void);
 void spi_setup(void); 
 void format_acceleration(int num);
+void button_setup(void);
+void blinkingLED_setup(void);
 
-//Funcion set_up referencia spi.c
 
 void spi_setup(void)
 {   
@@ -67,7 +70,32 @@ void spi_setup(void)
 	spi_enable(SPI5);
 }
 
-//Rutina de impresión de enteros
+void global_setup(){
+	clock_setup();
+	console_setup(115200); //valor a ingresar en el archivo de Python (baudrate).
+    spi_setup();
+	button_setup();
+	blinkingLED_setup();
+
+    gpio_clear(GPIOC, GPIO1);
+	spi_send(SPI5, GYR_CTRL_REG1); 
+	spi_read(SPI5);
+	spi_send(SPI5, GYR_CTRL_REG1_PD | GYR_CTRL_REG1_XEN |
+			GYR_CTRL_REG1_YEN | GYR_CTRL_REG1_ZEN |
+			(3 << GYR_CTRL_REG1_BW_SHIFT));
+	spi_read(SPI5);
+	gpio_set(GPIOC, GPIO1); 
+
+    gpio_clear(GPIOC, GPIO1);
+	spi_send(SPI5, GYR_CTRL_REG4);
+	spi_read(SPI5);
+	spi_send(SPI5, (1 << GYR_CTRL_REG4_FS_SHIFT));
+	spi_read(SPI5);
+	gpio_set(GPIOC, GPIO1);
+
+
+}
+
 void format_acceleration(int num)
 {
 	int	type, length, index = 0;
@@ -97,26 +125,22 @@ void format_acceleration(int num)
 	}
 }
 
-void global_setup(){
-	clock_setup();
-	console_setup(115200); //numero a ingresar en el archivo de comunicacion .py
-    spi_setup();
+void button_setup(void){
+	/* Enable GPIOA clock. */
+	rcc_periph_clock_enable(RCC_GPIOA);
 
-    gpio_clear(GPIOC, GPIO1);
-	spi_send(SPI5, GYR_CTRL_REG1); 
-	spi_read(SPI5);
-	spi_send(SPI5, GYR_CTRL_REG1_PD | GYR_CTRL_REG1_XEN |
-			GYR_CTRL_REG1_YEN | GYR_CTRL_REG1_ZEN |
-			(3 << GYR_CTRL_REG1_BW_SHIFT));
-	spi_read(SPI5);
-	gpio_set(GPIOC, GPIO1); 
+	/* Ponemos el GPIO0 (pin PA0) del puerto A como input*/
+	gpio_mode_setup(GPIOA, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO0);
+}
 
-    gpio_clear(GPIOC, GPIO1);
-	spi_send(SPI5, GYR_CTRL_REG4);
-	spi_read(SPI5);
-	spi_send(SPI5, (1 << GYR_CTRL_REG4_FS_SHIFT));
-	spi_read(SPI5);
-	gpio_set(GPIOC, GPIO1);
+void blinkingLED_setup(void){
+	/* Enable GPIOG clock. */
+	rcc_periph_clock_enable(RCC_GPIOG);
+
+	/* Set GPIO13 (in GPIO port G) to 'output push-pull' (pin PG13, el cual
+	corresponde a la una LED) */
+	gpio_mode_setup(GPIOG, GPIO_MODE_OUTPUT,
+			GPIO_PUPD_NONE, GPIO13);
 }
 
 int main(void)
@@ -124,11 +148,19 @@ int main(void)
 	global_setup();
     
 	while (1) {
-        uint8_t t;
-        uint8_t I_AM;
-        int16_t X;
-        int16_t Y;
-        int16_t Z;
+		if (gpio_get(GPIOA, GPIO0)) {
+			for (int i = 0; i < 3000000; i++) {	
+				__asm__("nop");
+			}
+			comms_enable = ~comms_enable;
+		}
+
+		for (int i = 0; i < 3000000; i++) {	
+				__asm__("nop");
+			}
+
+		uint8_t t, I_AM;
+        int16_t X, Y, Z;
 
 		gpio_clear(GPIOC, GPIO1);             
 		spi_send(SPI5, GYR_I_AM_AM_I | GYR_RNW);
@@ -193,17 +225,27 @@ int main(void)
 		Z|=spi_read(SPI5) << 8;
 		gpio_set(GPIOC, GPIO1);
 
+		// Se escalan las lecturas para hacer datos mas manejables.
         X = X*L3GD20_SENSITIVITY_500DPS;
         Y = Y*L3GD20_SENSITIVITY_500DPS;
         Z = Z*L3GD20_SENSITIVITY_500DPS;
 
-	    format_acceleration(X); 
-		console_puts("\t");
-        format_acceleration(Y); 
-		console_puts("\t");
-        format_acceleration(Z); 
-		console_puts("\n");
+		if (comms_enable) {
+			gpio_toggle(GPIOG, GPIO13);
+			format_acceleration(X); 
+			console_puts("\t");
+			format_acceleration(Y); 
+			console_puts("\t");
+			format_acceleration(Z); 
+			console_puts("\n");
+		}
 
+		else gpio_clear(GPIOG, GPIO13);
+
+        
+
+	    
+	
 	}
 
 	return 0;
