@@ -58,10 +58,15 @@ while not client.connected_flag:
 time.sleep(2)
 data = dict()
 
+
+#Creacion de listas 
 X = list()
 Y = list()
 Z = list()
+V = list()
 
+
+#Se manda a abrir el archivo Datos.csv
 with open('Datos.csv') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_counter = 0
@@ -69,20 +74,21 @@ with open('Datos.csv') as csv_file:
         X.append(row[0])
         Y.append(row[1])
         Z.append(row[2])
+        V.append(row[3])
+        
         line_counter += 1
-
-print(X)
-print(Y)
-print(Z)
 
 fileRead = False
 counter2 = 0
 
+#Se comienzan a dar los datos
 while(not fileRead):
 
     data["X"] = X[counter2]
     data["Y"] = Y[counter2]
     data["Z"] = Z[counter2]
+    data["V"] = V[counter2]
+    
 
 
     data_out = json.dumps(data) 
