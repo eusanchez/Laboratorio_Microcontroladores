@@ -44,6 +44,8 @@ void global_setup(void);
 void spi_setup(void); 
 void button_setup(void);
 void blinkingLED_setup(void);
+void adc_setup(void);
+uint16_t read_adc_naiive(uint8_t channel);
 
 
 void spi_setup(void)
@@ -71,6 +73,18 @@ void spi_setup(void)
 	spi_set_nss_high(SPI5);
     SPI_I2SCFGR(SPI5) &= ~SPI_I2SCFGR_I2SMOD;
 	spi_enable(SPI5);
+}
+
+void adc_setup(void){
+	rcc_periph_clock_enable(RCC_ADC1);
+	gpio_mode_setup(GPIOA, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO2);
+	gpio_mode_setup(GPIOA, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO6);
+
+	adc_power_off(ADC1);
+	adc_disable_scan_mode(ADC1);
+	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_3CYC);
+
+	adc_power_on(ADC1);
 }
 
 void global_setup(){
