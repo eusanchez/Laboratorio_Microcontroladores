@@ -1,10 +1,15 @@
 //Librerías
 #include <stdint.h>
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
 #include <math.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/usart.h> 
+#include <libopencm3/stm32/adc.h>
+#include <libopencm3/cm3/nvic.h>
 #include "clock.h"
 #include "console.h"
 #include "sdram.h"
@@ -37,7 +42,7 @@
 #define L3GD20_DPS_TO_RADS         (0.017453293F)  
 
 // Variables globales
-int comms_enable = 0;
+int comms_enable, alarm_enable = 0;
 
 //Declaracion de funciones
 void global_setup(void);
@@ -54,6 +59,7 @@ void spi_setup(void)
     rcc_periph_clock_enable(RCC_SPI5);
     rcc_periph_clock_enable(RCC_GPIOC);
 	rcc_periph_clock_enable(RCC_GPIOF);
+	
 
     //GPIO
 	gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO1);
@@ -87,12 +93,32 @@ void adc_setup(void){
 	adc_power_on(ADC1);
 }
 
+void button_setup(void){
+	/* Enable GPIOA clock. */
+	rcc_periph_clock_enable(RCC_GPIOA);
+
+	/* Ponemos el GPIO0 (pin PA0) del puerto A como input*/
+	gpio_mode_setup(GPIOA, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO0);
+}
+
+void blinkingLED_setup(void){
+	/* Enable GPIOG clock. */
+	rcc_periph_clock_enable(RCC_GPIOG);
+
+	/* Set GPIO13 (in GPIO port G) to 'output push-pull' (pin PG13, el cual
+	corresponde a la una LED) */
+	gpio_mode_setup(GPIOG, GPIO_MODE_OUTPUT,
+			GPIO_PUPD_NONE, GPIO13);
+}
+
 void global_setup(){
 	clock_setup();
 	console_setup(115200); //valor a ingresar en el archivo de Python (baudrate).
+	
     spi_setup();
 	button_setup();
 	blinkingLED_setup();
+	adc_setup();
 
     gpio_clear(GPIOC, GPIO1);
 	spi_send(SPI5, GYR_CTRL_REG1); 
@@ -113,22 +139,14 @@ void global_setup(){
 
 }
 
-void button_setup(void){
-	/* Enable GPIOA clock. */
-	rcc_periph_clock_enable(RCC_GPIOA);
-
-	/* Ponemos el GPIO0 (pin PA0) del puerto A como input*/
-	gpio_mode_setup(GPIOA, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO0);
-}
-
-void blinkingLED_setup(void){
-	/* Enable GPIOG clock. */
-	rcc_periph_clock_enable(RCC_GPIOG);
-
-	/* Set GPIO13 (in GPIO port G) to 'output push-pull' (pin PG13, el cual
-	corresponde a la una LED) */
-	gpio_mode_setup(GPIOG, GPIO_MODE_OUTPUT,
-			GPIO_PUPD_NONE, GPIO13);
+uint16_t read_adc_naiive(uint8_t channel){
+	uint8_t channel_array[16];
+	channel_array[0] = channel;
+	adc_set_regular_sequence(ADC1, 1, channel_array);
+	adc_start_conversion_regular(ADC1);
+	while (!adc_eoc(ADC1));
+	uint16_t reg16 = adc_read_regular(ADC1);
+	return reg16;
 }
 
 int main(void)
@@ -137,7 +155,6 @@ int main(void)
 	sdram_init();
 	lcd_spi_init();
 	msleep(2000);
-/*	(void) console_getc(1); */
 	gfx_init(lcd_draw_pixel, 240, 320);
 	gfx_fillScreen(LCD_WHITE);
 	gfx_setTextSize(2);
@@ -150,9 +167,10 @@ int main(void)
 	gfx_puts("valores de x, y y z.");
 	lcd_show_frame();
 	msleep(2000);
-/*	(void) console_getc(1); */
 	gfx_setTextColor(LCD_WHITE, LCD_BLACK);
 	gfx_setTextSize(3);
+
+	 
 
 	while (1) {
 		if (gpio_get(GPIOA, GPIO0)) {
@@ -167,8 +185,8 @@ int main(void)
 			}
 
 		uint8_t t, I_AM;
-        int16_t X, Y, Z;
-		char X_str[100], Y_str[100], Z_str[100];
+        int16_t X, Y, Z, V;
+		char X_str[100], Y_str[100], Z_str[100], V_str[100];
 
 		gpio_clear(GPIOC, GPIO1);             
 		spi_send(SPI5, GYR_I_AM_AM_I | GYR_RNW);
@@ -238,9 +256,14 @@ int main(void)
         Y = Y*L3GD20_SENSITIVITY_500DPS;
         Z = Z*L3GD20_SENSITIVITY_500DPS;
 
+		V = read_adc_naiive(2)*0.74074;
+		uint16_t input_adc1 = read_adc_naiive(6);
+		
+
 		sprintf(X_str, "%d", X);
 		sprintf(Y_str, "%d", Y);
 		sprintf(Z_str, "%d", Z);
+		sprintf(V_str, "%d", V);
 
 		if (comms_enable) {
 			gpio_toggle(GPIOG, GPIO13);
@@ -250,7 +273,10 @@ int main(void)
 			console_puts(Y_str);
 			console_puts("\t");
 			console_puts(Z_str);
+			console_puts("\t");
+			console_puts(V_str);
 			console_puts("\n");
+			if 
 		}
 
 		else gpio_clear(GPIOG, GPIO13);
@@ -276,11 +302,16 @@ int main(void)
 		gfx_setCursor(150, 150);
 		gfx_puts(Z_str);
 
+		gfx_setCursor(15, 175);
+		gfx_setTextSize(1);
+		if (comms_enable) gfx_puts("SERIAL COMMS: ON");
+		else gfx_puts("SERIAL COMMS: OFF");
 
 		gfx_setCursor(15, 200);
-		gfx_setTextSize(1.5);
-		if (comms_enable) gfx_puts("Serial comms: ON");
-		else gfx_puts("Serial comms: OFF");
+		gfx_setTextSize(1);
+		gfx_puts("Battery Level: ");
+		gfx_setCursor(150, 200);
+		gfx_puts(V_str);
 		
 		lcd_show_frame();
 	}
