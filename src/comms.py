@@ -11,7 +11,7 @@ header = ['X acc', 'Y acc', 'Z acc', 'Battery %']
 print(header)
 
 filename = open("Datos.csv",'w') # Creamos un archivo .csv en donde se escriben las lecturas.
-file_write = csv.writer(filename) # Escribiendo en el archivo.
+file_write = csv.writer(filename)
 
 while(1):
     # Formateamos las lineas de datos para ser procesadas y agregadas al .csv 

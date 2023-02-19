@@ -109,6 +109,10 @@ void blinkingLED_setup(void){
 	corresponde a la una LED) */
 	gpio_mode_setup(GPIOG, GPIO_MODE_OUTPUT,
 			GPIO_PUPD_NONE, GPIO13);
+
+	/* LED de emergencia de bateria*/
+	gpio_mode_setup(GPIOG, GPIO_MODE_OUTPUT,
+			GPIO_PUPD_NONE, GPIO14);
 }
 
 void global_setup(){
@@ -256,10 +260,15 @@ int main(void)
         Y = Y*L3GD20_SENSITIVITY_500DPS;
         Z = Z*L3GD20_SENSITIVITY_500DPS;
 
-		V = read_adc_naiive(2)*0.74074;
+		V = read_adc_naiive(2)*0.7407407;
 		uint16_t input_adc1 = read_adc_naiive(6);
-		
 
+		/*alarma de bateria baja, se activa si la bateria llega a 78% */ 
+		if (V < 78) {
+			alarm_enable = ~alarm_enable; 
+			gpio_toggle(GPIOG, GPIO14);
+		}
+		
 		sprintf(X_str, "%d", X);
 		sprintf(Y_str, "%d", Y);
 		sprintf(Z_str, "%d", Z);
@@ -276,9 +285,7 @@ int main(void)
 			console_puts("\t");
 			console_puts(V_str);
 			console_puts("\n");
-			if 
 		}
-
 		else gpio_clear(GPIOG, GPIO13);
 
 		gfx_fillScreen(LCD_BLACK);
