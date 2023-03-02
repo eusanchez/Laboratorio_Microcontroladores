@@ -17,8 +17,8 @@ int position_v = 0;
 int servo_v_LimitLow = 0;
 int servo_v_LimitHigh = 180;
 
-int speed = 2; // Velocidad de operacion de los servos, conviene dejarlo entre 5-10
-int tolerance = 25; // Intervalo decentre entre 50-100
+int speed = 5; // Velocidad de operacion de los servos, conviene dejarlo entre 5-10
+int tolerance = 50; // Intervalo decentre entre 50-100
 
 
 
@@ -26,7 +26,7 @@ void setup() {
   // Pegamos los 2 servos a algún pin de I/O para poder controlarlos; se conectan al pin 2 y 3, respectivamente.
   servo_h.attach(2);
   servo_v.attach(3);
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Configuramos por defecto la angulación de los servos en 180 y 45 grados. 
   servo_h.write(0);
@@ -38,10 +38,10 @@ void setup() {
 
 void loop(){ 
   
-  int TL = analogRead(A1); // top left
-  int TR = analogRead(A2); // top right
-  int BL = analogRead(A3); // bottom left
-  int BR = analogRead(A4); // bottom right
+  int TL = analogRead(A4); // top left
+  int TR = analogRead(A3); // top right
+  int BL = analogRead(A2); // bottom left
+  int BR = analogRead(A1); // bottom right
 
   // Calculamos los promedios de los lados (arriba, abajo, izquierda y derecha)
   int average_top = (TL + TR) / 2;
@@ -58,9 +58,16 @@ void loop(){
 
 
   // Primeros controlamos el servo horizontal (servo ubicado en la base)
-  if (diff_horizontal > tolerance) {
-    if (average_left > average_right) position_h += speed ;
-    else position_h -= speed;
+  if (diff_horizontal > tolerance){
+    if (position_v < 100) {
+      if (average_left > average_right) position_h += speed ;
+      else position_h -= speed;
+    }
+    else{
+      if (average_left > average_right) position_h -= speed ;
+      else position_h += speed;
+    }
+      
   }
 
   if (position_h < servo_h_LimitLow) position_h = servo_h_LimitLow;
@@ -80,14 +87,13 @@ void loop(){
 
   
   
-  // Leemos el puerto A5, procesamos senal analogica y la pasamos a trave sdel puerto serial
+  // Leemos el puerto A5, procesamos senal analogica y la pasamos a traves del puerto serial
   float solar_out = (analogRead(A5) *5 ) / 1023; // Pasamos lectura de 0-1023 a 0-5V
 
-  Serial.print("Vout: ");
   Serial.print(solar_out);
   Serial.print("\n");
   
-  delay(25);
+  delay(100);
   
 }
 
